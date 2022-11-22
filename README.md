@@ -6,6 +6,6 @@ Date: 28/06/2022
 
 #######################################################################################################################################################################
 
-- Folder preprocessing.It contains the algorithms for image preprocessing: image resizing, resample, bias correction, skull stripping, and normalization. 
+- Folder preprocessing. It contains the algorithms for image preprocessing: image resizing, resample, bias correction, skull stripping, and normalization. 
 
 #######################################################################################################################################################################
