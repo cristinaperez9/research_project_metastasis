@@ -40,9 +40,10 @@ from monai.transforms import (
     RandGaussianNoised,
     RandGaussianSharpend,
     RandAdjustContrastd,
+    Rand3DElasticd,
 )
 #from monai.handlers.utils import from_engine
-from monai.networks.nets import UNETR, UNet, ViT, SegResNet, AttentionUnet
+from monai.networks.nets import UNETR, ViT, SegResNet, AttentionUnet
 from monai.networks.layers import Norm
 from monai.metrics import DiceMetric
 from monai.losses import DiceLoss, DiceCELoss, DiceFocalLoss, FocalLoss, GeneralizedDiceLoss
@@ -134,10 +135,11 @@ def main():
                 image_key="image",
                 image_threshold=0,
             ),
-            #Data augmentation transformation
+            #Data augmentation
             RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0), #original
             RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1), #original
             RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=2), #original
+            Rand3DElasticd(keys=["image", "label"], prob=0.5, sigma_range=(5, 7), magnitude_range=(300, 300), mode=['bilinear', 'nearest']),
             RandScaleIntensityd(keys="image", factors=0.1, prob=1.0), #original #nonew
             RandShiftIntensityd(keys="image", offsets=0.1, prob=1.0), #original #nonew
             EnsureTyped(keys=["image", "label"]), #original
@@ -168,7 +170,7 @@ def main():
     device = torch.device("cuda:0")  #Change if multiple gpu training
 
     ###################################################################################################
-    # Model
+    # Model: use "Attention" or "UNet" as baselines
     ###################################################################################################
 
     if opt.network == "Attention":
@@ -191,6 +193,13 @@ def main():
     if opt.network == "DeformAttention":
         print("Features used in the model: ", opt.features)
         model = DeformAttentionUNet(img_ch=opt.in_channels, output_ch=opt.out_channels, features=opt.features)
+
+    if opt.network == "UNet":
+        if not opt.deep_supervision:
+            model = UNet(opt.in_channels, opt.out_channels)
+        else:
+            model = UNet_ds(opt.in_channels, opt.out_channels, features=opt.features)
+
     ####################################################################################################
 
     ###################################################################################################

@@ -2,13 +2,14 @@
 # Cristina Almagro-Pérez, ETH Zürich, 2022
 #############################################################################################
 
-# Networks: Attention U-Net, and Attention U-Net with deep supervision
+# Networks: Attention U-Net, Attention U-Net with deep supervision, UNet,
+# and UNet with deep supervision
 
 import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
 import torchvision.transforms as T
-
+from modules_deformable import ConvBlock, UpConv
 ###############################################################################
 # Modules
 ###############################################################################
@@ -236,3 +237,148 @@ class AttU_Net_ds(nn.Module):
 
         return x, output_up1, output_up2, output_up3
 
+#################################################################################
+# UNet architecture used as baseline for experiments
+#################################################################################
+class UNet(nn.Module):
+    def __init__(self, img_ch=1, output_ch=2, features=[16, 32, 64, 128, 256]):
+        super(UNet, self).__init__()
+
+        self.Maxpool = nn.MaxPool3d(kernel_size=2, stride=2)
+
+        self.Conv1 = ConvBlock(ch_in=img_ch, ch_out=features[0])  #64
+        self.Conv2 = ConvBlock(ch_in=features[0], ch_out=features[1])
+        self.Conv3 = ConvBlock(ch_in=features[1], ch_out=features[2])
+        self.Conv4 = ConvBlock(ch_in=features[2], ch_out=features[3])
+        self.Conv5 = ConvBlock(ch_in=features[3], ch_out=features[4])
+
+        self.Up5 = UpConv(ch_in=features[4], ch_out=features[3])
+        self.Up_conv5 = ConvBlock(ch_in=features[4], ch_out=features[3])
+
+        self.Up4 = UpConv(ch_in=features[3], ch_out=features[2])
+        self.Up_conv4 = ConvBlock(ch_in=features[3], ch_out=features[2])
+
+        self.Up3 = UpConv(ch_in=features[2], ch_out=features[1])
+        self.Up_conv3 = ConvBlock(ch_in=features[2], ch_out=features[1])
+
+        self.Up2 = UpConv(ch_in=features[1], ch_out=features[0])
+        val = int(features[0]/2)
+        self.Up_conv2 = ConvBlock(ch_in=features[1], ch_out=features[0])
+
+        self.Conv_1x1 = nn.Conv3d(features[0], output_ch, kernel_size=(1, 1, 1), stride=(1, 1, 1), padding=0)
+
+    def forward(self, x):
+        # encoding path
+        x1 = self.Conv1(x)
+
+        x2 = self.Maxpool(x1)
+        x2 = self.Conv2(x2)
+
+        x3 = self.Maxpool(x2)
+        x3 = self.Conv3(x3)
+
+        x4 = self.Maxpool(x3)
+        x4 = self.Conv4(x4)
+
+        x5 = self.Maxpool(x4)
+        x5 = self.Conv5(x5)
+
+        # decoding + concat path
+        d5 = self.Up5(x5)
+        d5 = torch.cat((x4, d5), dim=1)
+        d5 = self.Up_conv5(d5)
+
+        d4 = self.Up4(d5)
+        d4 = torch.cat((x3, d4), dim=1)
+        d4 = self.Up_conv4(d4)
+
+        d3 = self.Up3(d4)
+        d3 = torch.cat((x2, d3), dim=1)
+        d3 = self.Up_conv3(d3)
+
+        d2 = self.Up2(d3)
+        d2 = torch.cat((x1, d2), dim=1)
+        d2 = self.Up_conv2(d2)
+
+        d1 = self.Conv_1x1(d2)
+
+        return d1
+#################################################################################
+# UNet architecture with deep supervision used as baseline for experiments
+#################################################################################
+class UNet_ds(nn.Module):
+    def __init__(self, img_ch=1, output_ch=2, features=[16, 32, 64, 128, 256]):
+        super(UNet_ds, self).__init__()
+
+        self.Maxpool = nn.MaxPool3d(kernel_size=2, stride=2)
+
+        self.Conv1 = ConvBlock(ch_in=img_ch, ch_out=features[0])  #64
+        self.Conv2 = ConvBlock(ch_in=features[0], ch_out=features[1])
+        self.Conv3 = ConvBlock(ch_in=features[1], ch_out=features[2])
+        self.Conv4 = ConvBlock(ch_in=features[2], ch_out=features[3])
+        self.Conv5 = ConvBlock(ch_in=features[3], ch_out=features[4])
+
+        self.Up5 = UpConv(ch_in=features[4], ch_out=features[3])
+        self.Up_conv5 = ConvBlock(ch_in=features[4], ch_out=features[3])
+
+        self.Up4 = UpConv(ch_in=features[3], ch_out=features[2])
+        self.Up_conv4 = ConvBlock(ch_in=features[3], ch_out=features[2])
+
+        self.Up3 = UpConv(ch_in=features[2], ch_out=features[1])
+        self.Up_conv3 = ConvBlock(ch_in=features[2], ch_out=features[1])
+
+        self.Up2 = UpConv(ch_in=features[1], ch_out=features[0])
+        val = int(features[0]/2)
+        self.Up_conv2 = ConvBlock(ch_in=features[1], ch_out=features[0])
+
+        self.Conv_1x1 = nn.Conv3d(features[0], output_ch, kernel_size=(1, 1, 1), stride=(1, 1, 1), padding=0)
+
+        # deep supervision
+        self.dsup1_logits = nn.Sequential(nn.Upsample(size=[128, 128, 128], mode='trilinear'), nn.Conv3d(features[3], output_ch, kernel_size=(1, 1, 1)))
+        self.dsup2_logits = nn.Sequential(nn.Upsample(size=[128, 128, 128], mode='trilinear'), nn.Conv3d(features[2], output_ch, kernel_size=(1, 1, 1)))
+        self.dsup3_logits = nn.Sequential(nn.Upsample(size=[128, 128, 128], mode='trilinear'), nn.Conv3d(features[1], output_ch, kernel_size=(1, 1, 1)))
+
+    def forward(self, x):
+        # encoding path
+        x1 = self.Conv1(x)
+
+        x2 = self.Maxpool(x1)
+        x2 = self.Conv2(x2)
+
+        x3 = self.Maxpool(x2)
+        x3 = self.Conv3(x3)
+
+        x4 = self.Maxpool(x3)
+        x4 = self.Conv4(x4)
+
+        x5 = self.Maxpool(x4)
+        x5 = self.Conv5(x5)
+
+        # decoding + concat path
+        d5 = self.Up5(x5)
+        d5 = torch.cat((x4, d5), dim=1)
+        d5 = self.Up_conv5(d5)
+        output_up1 = self.dsup1_logits(d5)
+        del x5
+
+        d4 = self.Up4(d5)
+        d4 = torch.cat((x3, d4), dim=1)
+        d4 = self.Up_conv4(d4)
+        output_up2 = self.dsup2_logits(d4)
+        del d5, x3
+
+        d3 = self.Up3(d4)
+        d3 = torch.cat((x2, d3), dim=1)
+        d3 = self.Up_conv3(d3)
+        output_up3 = self.dsup3_logits(d3)
+        del d4, x2
+
+        d2 = self.Up2(d3)
+        d2 = torch.cat((x1, d2), dim=1)
+        d2 = self.Up_conv2(d2)
+        del x1
+
+        d1 = self.Conv_1x1(d2)
+        del d2
+
+        return d1, output_up1, output_up2, output_up3

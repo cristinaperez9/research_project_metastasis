@@ -33,7 +33,8 @@ class Options():
                             type=str)
 
         #Model parameter
-        parser.add_argument("--network", default='ThreeOffsetsAttentionUNet', help='Attention, DUNetV1V2, ThreeOffsetsAttentionUNet, DeformAttention')
+        # Use "UNet" or "Attention" in "network" argument for baseline
+        parser.add_argument("--network", default='ThreeOffsetsAttentionUNet', help='UNet, Attention, DUNetV1V2, ThreeOffsetsAttentionUNet, DeformAttention')
         parser.add_argument("--features", default=[16, 32, 64, 128, 256])  #[16, 32, 64, 128, 256]
         parser.add_argument("--patch_size", default=(128, 128, 128), help="Size of the patches extracted from the image") #128 128 64 for BrainMetShare #128 128 128 for mydataset
         parser.add_argument("--spacing", default=[0.6, 0.6, 0.6], help="Resolution of the MRI") #default=[0.94, 0.94, 1.0] #this is not true #my_dataset = [0.6,0.6,0.6]
