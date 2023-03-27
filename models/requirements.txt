@@ -1,0 +1,14 @@
+Nibabel version: 4.0.2
+scikit-image version: 0.19.3
+Pillow version: 9.2.0
+Tensorboard version: 2.10.1
+gdown version: 4.5.3
+TorchVision version: 0.10.0+cu111
+tqdm version: 4.64.1
+lmdb version: 1.3.0
+psutil version: 5.9.3
+pandas version: 1.5.1
+einops version: 0.5.0
+transformers version: 4.21.3
+mlflow version: 1.29.0
+pynrrd version: 1.0.0
