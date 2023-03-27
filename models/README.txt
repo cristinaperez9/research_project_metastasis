@@ -5,11 +5,13 @@
 'init.py', 'train.py' and 'inference.py' are the three main files for specifying the parameters, training and inference respectively.
 
 
-- File 'networks.py' contains 2 architectures: Attention U-Net and Attention U-Net with deep supervision.
+- File 'networks.py' contains 4 architectures: UNet, UNet with deep supervision, Attention U-Net and Attention U-Net with deep supervision.
 - File 'network_deformable.py' contains 3 architectures: ThreeOffsetsAttentionUNet, DUNetV1V2***, DeformAttention.
 - File 'modules_deformable.py' contains the Three Offset Block as well as the modules for Deformable Attention Unet. 
 - File 'unet_parts_3D.py' contains some modules required in a 3D U-Net architecture; 'deform_part_3D.py' contains
   modules used in a deformable unet (offsets are learned). These modules are used in the DUNetV1V2 network.
+  
+  Note: for baseline models use only the models within networks.py.
 
 ###### Training #####
 In 'init.py' file specify the following parameters. The rest of parameters can be left unchanged. 
@@ -19,6 +21,7 @@ of the model will be also saved every two epochs in files with name 'Architectur
 Architecture is the network name. See point 2 below.
 
 2. Specify the "network" . Options:
+   - UNet
    - Attention: Attention U-Net.
    - ThreeOffsetsAttentionUNet.
    - DUNetV1V2: Deformable U-Net (***3D Extension of "DUNet: A deformable network for retinal vessel segmentation")
