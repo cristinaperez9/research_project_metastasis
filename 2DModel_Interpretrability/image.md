@@ -1,1 +1,1 @@
-![Image Alt Text](path/to/your/dependencies.jpg)
+![Dependencies](path/to/your/dependencies.jpg)
