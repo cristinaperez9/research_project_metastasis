@@ -1,1 +1,1 @@
-![Dependencies](path/to/your/dependencies.jpg)
+![Dependencies](dependencies.jpg)
